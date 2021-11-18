@@ -64,4 +64,4 @@ stages:
                azureSubscription: 'Visual Studio Enterprise with MSDN(72fedcda-e1c3-4003-bea8-c104553c5c44)'
                appType: 'webApp'
                WebAppName: 'basicpdb'
-               packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
+               packageForLinux: '$(Pipeline.Workspace)/**/*.zip'

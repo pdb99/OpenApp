@@ -33,7 +33,7 @@ steps:
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
-- task: PublishBuildArtifacts@1
+- task: PublishPipelineArtifact@1
   inputs:
-    PathtoPublish: 'deploy\Uinsure.API.Acturis.CloudService\bin\Release'
+    targetPath: '$(Pipeline.Workspace)'
     ArtifactName: "CloudService"

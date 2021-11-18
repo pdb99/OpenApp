@@ -6,34 +6,62 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'windows-latest'
+stages:
+- stage: Build
 
-variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+  jobs:
+  - job: Build
+    
+    pool:
+      vmImage: 'windows-latest'
 
-steps:
-- task: NuGetToolInstaller@1
+    variables:
+      solution: '**/*.sln'
+      buildPlatform: 'Any CPU'
+      buildConfiguration: 'Release'
 
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '$(solution)'
+    steps:
+    - task: NuGetToolInstaller@1
 
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+    - task: NuGetCommand@2
+      inputs:
+        restoreSolution: '$(solution)'
 
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+    - task: VSBuild@1
+      inputs:
+        solution: '$(solution)'
+        msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
+        platform: '$(buildPlatform)'
+        configuration: '$(buildConfiguration)'
 
-- task: PublishPipelineArtifact@1
-  inputs:
-    targetPath: '$(Pipeline.Workspace)'
-    ArtifactName: "CloudService"
+    - task: VSTest@2
+      inputs:
+        platform: '$(buildPlatform)'
+        configuration: '$(buildConfiguration)'
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Pipeline.Workspace)'
+        ArtifactName: "CloudService"
+
+- stage: DeployQA
+  jobs:
+  - deployment: DeployQA
+    pool:
+      vmImage: 'windows-latest'
+    environment: 'qa'
+    strategy:
+     runOnce:
+       deploy:
+         steps:
+           - task: DownloadPipelineArtifact@2
+             inputs:
+               buildType: current
+               path: '$(Pipeline.Workspace)'
+           - task: AzureRmWebAppDeployment@4
+             inputs:
+               ConnectionType: 'AzureRM'
+               azureSubscription: 'Visual Studio Enterprise with MSDN(72fedcda-e1c3-4003-bea8-c104553c5c44)'
+               appType: 'webApp'
+               WebAppName: 'basicpdb'
+               packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
